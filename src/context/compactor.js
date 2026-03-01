@@ -19,12 +19,20 @@ async function compactConversation(messages, maxTokens, provider) {
   const systemMsgs = messages.filter(m => m.role === 'system');
   const nonSystem = messages.filter(m => m.role !== 'system');
 
-  const keepRecent = Math.min(nonSystem.length, findKeepCount(nonSystem, maxTokens, systemMsgs));
+  const groups = groupToolBoundaries(nonSystem);
+  const keepGroups = findKeepGroups(groups, maxTokens, systemMsgs);
 
-  if (keepRecent >= nonSystem.length) return messages;
+  const kept = [];
+  for (let i = groups.length - keepGroups; i < groups.length; i++) {
+    kept.push(...groups[i]);
+  }
 
-  const toSummarize = nonSystem.slice(0, nonSystem.length - keepRecent);
-  const kept = nonSystem.slice(nonSystem.length - keepRecent);
+  if (kept.length >= nonSystem.length) return messages;
+
+  const toSummarize = [];
+  for (let i = 0; i < groups.length - keepGroups; i++) {
+    toSummarize.push(...groups[i]);
+  }
 
   const summaryText = await generateSummary(toSummarize, provider);
 
@@ -37,26 +45,55 @@ async function compactConversation(messages, maxTokens, provider) {
     ...kept,
   ];
 
-  logger.info(`Compacted to ${countMessageTokens(compacted)} tokens (kept ${keepRecent} recent messages)`);
+  logger.info(`Compacted to ${countMessageTokens(compacted)} tokens (kept ${kept.length} recent messages in ${keepGroups} groups)`);
   return compacted;
 }
 
-function findKeepCount(messages, budget, systemMsgs) {
+/**
+ * Group messages into atomic units that must not be split.
+ * An assistant message with tool_calls and its following tool result messages
+ * form one indivisible group. Other messages are individual groups.
+ */
+function groupToolBoundaries(messages) {
+  const groups = [];
+  let i = 0;
+
+  while (i < messages.length) {
+    const msg = messages[i];
+
+    if (msg.role === 'assistant' && msg.tool_calls && msg.tool_calls.length > 0) {
+      const group = [msg];
+      i++;
+      while (i < messages.length && messages[i].role === 'tool') {
+        group.push(messages[i]);
+        i++;
+      }
+      groups.push(group);
+    } else {
+      groups.push([msg]);
+      i++;
+    }
+  }
+
+  return groups;
+}
+
+function findKeepGroups(groups, budget, systemMsgs) {
   const systemTokens = countMessageTokens(systemMsgs);
-  const summaryOverhead = 600; // estimated tokens for summary system message
+  const summaryOverhead = 600;
   const available = budget - systemTokens - summaryOverhead;
 
   let keep = 0;
   let tokens = 0;
 
-  for (let i = messages.length - 1; i >= 0; i--) {
-    const msgTokens = countMessageTokens([messages[i]]);
-    if (tokens + msgTokens > available) break;
-    tokens += msgTokens;
+  for (let i = groups.length - 1; i >= 0; i--) {
+    const groupTokens = countMessageTokens(groups[i]);
+    if (tokens + groupTokens > available) break;
+    tokens += groupTokens;
     keep++;
   }
 
-  return Math.max(keep, 2); // always keep at least last 2 messages
+  return Math.max(keep, 1);
 }
 
 async function generateSummary(messages, provider) {
