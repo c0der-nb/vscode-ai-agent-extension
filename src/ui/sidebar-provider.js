@@ -123,6 +123,8 @@ class SidebarProvider {
 
   async _applySettings(data) {
     try {
+      if (this._reinitProvider) await this._reinitProvider(true);
+
       const cfg = vscode.workspace.getConfiguration('aiAgent');
 
       if (data.provider) await cfg.update('provider', data.provider, vscode.ConfigurationTarget.Global);
@@ -162,12 +164,14 @@ class SidebarProvider {
 
       if (this._reinitProvider) {
         await this._reinitProvider();
+        await this._reinitProvider(false);
       }
 
       this._postMessage({ type: 'settingsSaved' });
       vscode.window.showInformationMessage('AI Agent: Settings saved.');
       logger.info('Settings updated from panel');
     } catch (err) {
+      if (this._reinitProvider) await this._reinitProvider(false);
       logger.error('Failed to save settings', err);
       this._postMessage({ type: 'error', text: 'Failed to save settings: ' + err.message });
     }

@@ -15,6 +15,7 @@ let contextManager;
 let modeController;
 let sidebarProvider;
 let currentProvider = null;
+let _suppressConfigReinit = false;
 
 async function activate(context) {
   logger.info('AI Coding Agent activating...');
@@ -34,7 +35,9 @@ async function activate(context) {
     modeController,
     contextManager,
     () => currentProvider,
-    async () => {
+    async (suppress) => {
+      if (suppress === true) { _suppressConfigReinit = true; return; }
+      if (suppress === false) { _suppressConfigReinit = false; return; }
       await initProvider();
       contextManager.setProvider(currentProvider);
     },
@@ -146,6 +149,7 @@ async function activate(context) {
   });
 
   const configChangeListener = vscode.workspace.onDidChangeConfiguration(async (e) => {
+    if (_suppressConfigReinit) return;
     if (e.affectsConfiguration('aiAgent')) {
       await initProvider();
       contextManager.setProvider(currentProvider);
