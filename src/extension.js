@@ -34,6 +34,10 @@ async function activate(context) {
     modeController,
     contextManager,
     () => currentProvider,
+    async () => {
+      await initProvider();
+      contextManager.setProvider(currentProvider);
+    },
   );
 
   const sidebarRegistration = vscode.window.registerWebviewViewProvider(

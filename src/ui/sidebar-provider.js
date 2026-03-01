@@ -12,11 +12,12 @@ class SidebarProvider {
    * @param {import('../context/manager')} contextManager
    * @param {function} getProvider - returns current LLM provider
    */
-  constructor(context, modeController, contextManager, getProvider) {
+  constructor(context, modeController, contextManager, getProvider, reinitProvider) {
     this._context = context;
     this._modeController = modeController;
     this._contextManager = contextManager;
     this._getProvider = getProvider;
+    this._reinitProvider = reinitProvider;
     this._view = null;
   }
 
@@ -157,6 +158,10 @@ class SidebarProvider {
       }
       if (data.jiraToken) {
         await config.setSecret('aiAgent.secrets.jiraApiToken', data.jiraToken);
+      }
+
+      if (this._reinitProvider) {
+        await this._reinitProvider();
       }
 
       this._postMessage({ type: 'settingsSaved' });
