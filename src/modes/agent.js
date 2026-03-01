@@ -59,6 +59,13 @@ async function runAgent(userMessage, contextManager, provider, { onText, onToolC
       } else if (chunk.type === 'tool_call') {
         toolCalls.push(chunk.content);
       } else if (chunk.type === 'error') {
+        const msg = (chunk.content || '').toLowerCase();
+        if (msg.includes('rate limit') || msg.includes('429') || msg.includes('too many requests')) {
+          onText(`\n\n*Rate limit error. Will retry this round...*\n\n`);
+          textContent = '';
+          toolCalls.length = 0;
+          break;
+        }
         onText(`\n\n**Error:** ${chunk.content}`);
         onDone();
         return;
