@@ -24,14 +24,17 @@ class AzureFoundryProvider extends BaseProvider {
       if (msg.role === 'system') {
         systemParts.push(msg.content);
       } else if (msg.role === 'tool') {
-        conversation.push({
-          role: 'user',
-          content: [{
-            type: 'tool_result',
-            tool_use_id: msg.tool_call_id,
-            content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-          }],
-        });
+        const toolResult = {
+          type: 'tool_result',
+          tool_use_id: msg.tool_call_id,
+          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+        };
+        const last = conversation[conversation.length - 1];
+        if (last && last.role === 'user' && Array.isArray(last.content) && last.content[0]?.type === 'tool_result') {
+          last.content.push(toolResult);
+        } else {
+          conversation.push({ role: 'user', content: [toolResult] });
+        }
       } else if (msg.role === 'assistant' && msg.tool_calls) {
         const content = [];
         if (msg.content) {
@@ -127,6 +130,7 @@ class AzureFoundryProvider extends BaseProvider {
         if (isRateLimitError(err) && attempt < MAX_RETRIES - 1) {
           const waitMs = getRetryDelay(err, attempt);
           logger.warn(`Azure Foundry rate limit hit (attempt ${attempt + 1}/${MAX_RETRIES}), waiting ${Math.ceil(waitMs / 1000)}s`);
+          yield { type: 'retry', content: null };
           yield { type: 'text', content: `\n\n*Rate limit reached. Waiting ${Math.ceil(waitMs / 1000)}s before retrying (attempt ${attempt + 2}/${MAX_RETRIES})...*\n\n` };
           await sleep(waitMs);
           continue;

@@ -76,6 +76,7 @@ class AzureOpenAIProvider extends BaseProvider {
         if (isRateLimitError(err) && attempt < MAX_RETRIES - 1) {
           const waitMs = getRetryDelay(err, attempt);
           logger.warn(`Azure OpenAI rate limit hit (attempt ${attempt + 1}/${MAX_RETRIES}), waiting ${Math.ceil(waitMs / 1000)}s`);
+          yield { type: 'retry', content: null };
           yield { type: 'text', content: `\n\n*Rate limit reached. Waiting ${Math.ceil(waitMs / 1000)}s before retrying (attempt ${attempt + 2}/${MAX_RETRIES})...*\n\n` };
           await sleep(waitMs);
           continue;

@@ -41,7 +41,11 @@ async function runAsk(userMessage, contextManager, provider, { onText, onToolCal
     for await (const chunk of provider.streamChat(messages, tools)) {
       if (signal?.aborted) break;
 
-      if (chunk.type === 'text') {
+      if (chunk.type === 'retry') {
+        textContent = '';
+        toolCalls.length = 0;
+        continue;
+      } else if (chunk.type === 'text') {
         textContent += chunk.content;
         onText(chunk.content);
       } else if (chunk.type === 'tool_call') {
