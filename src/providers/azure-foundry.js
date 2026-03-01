@@ -7,7 +7,7 @@ class AzureFoundryProvider extends BaseProvider {
     const Anthropic = require('@anthropic-ai/sdk');
     this.client = new Anthropic({
       apiKey,
-      baseURL: `${endpoint.replace(/\/+$/, '')}/v1`,
+      baseURL: endpoint.replace(/\/+$/, ''),
     });
     this.model = model;
   }
