@@ -71,8 +71,8 @@ class SidebarProvider {
     html = html.replace(/\{\{cspSource\}\}/g, webview.cspSource);
     html = html.replace(/\{\{stylesUri\}\}/g, stylesUri.toString());
     html = html.replace(/\{\{highlightUri\}\}/g, highlightUri.toString());
-    html = html.replace(/\{\{hljsScript\}\}/g, hljsScript);
-    html = html.replace(/\{\{mainScript\}\}/g, mainScript);
+    html = html.replace(/\{\{hljsScript\}\}/g, () => hljsScript);
+    html = html.replace(/\{\{mainScript\}\}/g, () => mainScript);
 
     return html;
   }
