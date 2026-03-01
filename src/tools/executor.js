@@ -1,6 +1,7 @@
 const fileOps = require('./file-ops');
 const search = require('./search');
 const terminal = require('./terminal');
+const jira = require('./jira');
 const logger = require('../utils/logger');
 
 const TOOL_MAP = {
@@ -12,6 +13,8 @@ const TOOL_MAP = {
   searchFiles: search.searchFiles,
   listFiles: search.listFiles,
   runCommand: terminal.runCommand,
+  jiraGetTicket: jira.jiraGetTicket,
+  jiraSearchTickets: jira.jiraSearchTickets,
 };
 
 /**

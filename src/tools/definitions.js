@@ -121,10 +121,39 @@ const ALL_TOOLS = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'jiraGetTicket',
+      description: 'Fetch a Jira ticket by its ID (e.g. PROJ-1234). Returns summary, status, description, and recent comments.',
+      parameters: {
+        type: 'object',
+        properties: {
+          ticketId: { type: 'string', description: 'Jira ticket ID (e.g. PROJ-1234)' },
+        },
+        required: ['ticketId'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'jiraSearchTickets',
+      description: 'Search Jira tickets using JQL (Jira Query Language). Returns a list of matching tickets with key, summary, status, and assignee.',
+      parameters: {
+        type: 'object',
+        properties: {
+          jql: { type: 'string', description: 'JQL query (e.g. "project = PROJ AND status = Open")' },
+          maxResults: { type: 'number', description: 'Max results to return (default 10, max 20)' },
+        },
+        required: ['jql'],
+      },
+    },
+  },
 ];
 
 const READ_ONLY_TOOLS = ALL_TOOLS.filter(t =>
-  ['readFile', 'searchFiles', 'listFiles'].includes(t.function.name)
+  ['readFile', 'searchFiles', 'listFiles', 'jiraGetTicket', 'jiraSearchTickets'].includes(t.function.name)
 );
 
 function getToolsForMode(mode) {

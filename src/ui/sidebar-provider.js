@@ -101,6 +101,7 @@ class SidebarProvider {
     const azureCfg = config.getAzureConfig();
     const foundryCfg = config.getAzureFoundryConfig();
     const awsCfg = config.getAwsConfig();
+    const jiraCfg = config.getJiraConfig();
 
     this._postMessage({
       type: 'settingsData',
@@ -114,6 +115,7 @@ class SidebarProvider {
         azureFoundryModelName: foundryCfg.modelName,
         awsRegion: awsCfg.region,
         awsModelId: awsCfg.modelId,
+        jiraBaseUrl: jiraCfg.baseUrl,
       },
     });
   }
@@ -146,6 +148,15 @@ class SidebarProvider {
         if (data.awsSecretAccessKey) {
           await config.setSecret('aiAgent.secrets.awsSecretAccessKey', data.awsSecretAccessKey);
         }
+      }
+
+      if (data.jiraBaseUrl !== undefined) await cfg.update('jira.baseUrl', data.jiraBaseUrl, vscode.ConfigurationTarget.Global);
+
+      if (data.jiraEmail) {
+        await config.setSecret('aiAgent.secrets.jiraEmail', data.jiraEmail);
+      }
+      if (data.jiraToken) {
+        await config.setSecret('aiAgent.secrets.jiraApiToken', data.jiraToken);
       }
 
       this._postMessage({ type: 'settingsSaved' });

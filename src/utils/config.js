@@ -7,6 +7,8 @@ const SECRET_KEYS = {
   azureFoundry: 'aiAgent.secrets.azureFoundryApiKey',
   'bedrock.accessKeyId': 'aiAgent.secrets.awsAccessKeyId',
   'bedrock.secretAccessKey': 'aiAgent.secrets.awsSecretAccessKey',
+  'jira.email': 'aiAgent.secrets.jiraEmail',
+  'jira.token': 'aiAgent.secrets.jiraApiToken',
 };
 
 let _secretStorage = null;
@@ -83,6 +85,16 @@ async function setApiKey(provider, value) {
   await setSecret(secretKey, value);
 }
 
+function getJiraConfig() {
+  return { baseUrl: get('jira.baseUrl') || '' };
+}
+
+async function getJiraCredentials() {
+  const email = await getSecret(SECRET_KEYS['jira.email']);
+  const token = await getSecret(SECRET_KEYS['jira.token']);
+  return { email, token };
+}
+
 async function getAwsCredentials() {
   const accessKeyId = await getSecret(SECRET_KEYS['bedrock.accessKeyId']);
   const secretAccessKey = await getSecret(SECRET_KEYS['bedrock.secretAccessKey']);
@@ -105,4 +117,6 @@ module.exports = {
   getSecret,
   setSecret,
   getAwsCredentials,
+  getJiraConfig,
+  getJiraCredentials,
 };

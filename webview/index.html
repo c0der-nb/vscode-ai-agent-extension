@@ -93,6 +93,25 @@
         </div>
       </div>
 
+      <div class="settings-divider"></div>
+
+      <div id="jiraSettingsGroup">
+        <h3 style="font-size:12px; margin-bottom:8px;">Jira Integration</h3>
+        <div class="settings-group">
+          <label for="settingsJiraBaseUrl">Jira Base URL</label>
+          <input type="text" id="settingsJiraBaseUrl" placeholder="https://yourorg.atlassian.net" />
+        </div>
+        <div class="settings-group">
+          <label for="settingsJiraEmail">Jira Email</label>
+          <input type="text" id="settingsJiraEmail" placeholder="you@example.com" />
+        </div>
+        <div class="settings-group">
+          <label for="settingsJiraToken">Jira API Token</label>
+          <input type="password" id="settingsJiraToken" placeholder="Paste token (stored securely)" />
+          <div class="settings-hint">Leave empty to keep existing token</div>
+        </div>
+      </div>
+
       <div class="settings-actions">
         <button id="settingsSaveBtn">Save</button>
       </div>

@@ -110,6 +110,25 @@ async function activate(context) {
     vscode.window.showInformationMessage(`AI Agent: API key saved for ${provider}.`);
   });
 
+  const setJiraCredsCmd = vscode.commands.registerCommand('aiAgent.setJiraCredentials', async () => {
+    const email = await vscode.window.showInputBox({
+      prompt: 'Enter your Jira email address',
+      ignoreFocusOut: true,
+    });
+    if (!email) return;
+
+    const token = await vscode.window.showInputBox({
+      prompt: 'Enter your Jira API token',
+      password: true,
+      ignoreFocusOut: true,
+    });
+    if (!token) return;
+
+    await config.setSecret('aiAgent.secrets.jiraEmail', email);
+    await config.setSecret('aiAgent.secrets.jiraApiToken', token);
+    vscode.window.showInformationMessage('AI Agent: Jira credentials saved.');
+  });
+
   const askSelectionCmd = vscode.commands.registerCommand('aiAgent.askAboutSelection', () => {
     handleSelectionAction('ask');
   });
@@ -137,6 +156,7 @@ async function activate(context) {
     clearChatCmd,
     setModeCmd,
     setApiKeyCmd,
+    setJiraCredsCmd,
     askSelectionCmd,
     explainSelectionCmd,
     refactorSelectionCmd,

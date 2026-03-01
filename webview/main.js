@@ -71,6 +71,7 @@
     const foundryModelEl = document.getElementById('settingsFoundryModel');
     const awsRegionEl = document.getElementById('settingsAwsRegion');
     const awsModelEl = document.getElementById('settingsAwsModel');
+    const jiraBaseUrlEl = document.getElementById('settingsJiraBaseUrl');
 
     if (providerEl) providerEl.value = data.provider || 'openai';
     if (modelEl) modelEl.value = data.model || '';
@@ -81,6 +82,7 @@
     if (foundryModelEl) foundryModelEl.value = data.azureFoundryModelName || '';
     if (awsRegionEl) awsRegionEl.value = data.awsRegion || '';
     if (awsModelEl) awsModelEl.value = data.awsModelId || '';
+    if (jiraBaseUrlEl) jiraBaseUrlEl.value = data.jiraBaseUrl || '';
 
     updateSettingsVisibility();
   }
@@ -113,6 +115,9 @@
       awsModelId: document.getElementById('settingsAwsModel')?.value,
       awsAccessKeyId: document.getElementById('settingsAwsAccessKey')?.value,
       awsSecretAccessKey: document.getElementById('settingsAwsSecretKey')?.value,
+      jiraBaseUrl: document.getElementById('settingsJiraBaseUrl')?.value,
+      jiraEmail: document.getElementById('settingsJiraEmail')?.value,
+      jiraToken: document.getElementById('settingsJiraToken')?.value,
     };
 
     vscode.postMessage({ type: 'updateSettings', data });
@@ -123,6 +128,10 @@
     if (awsAkEl) awsAkEl.value = '';
     const awsSkEl = document.getElementById('settingsAwsSecretKey');
     if (awsSkEl) awsSkEl.value = '';
+    const jiraTokenEl = document.getElementById('settingsJiraToken');
+    if (jiraTokenEl) jiraTokenEl.value = '';
+    const jiraEmailEl = document.getElementById('settingsJiraEmail');
+    if (jiraEmailEl) jiraEmailEl.value = '';
 
     settingsPanel.style.display = 'none';
   }
