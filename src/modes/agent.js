@@ -95,7 +95,17 @@ async function runAgent(userMessage, contextManager, provider, { onText, onToolC
   }
 
   if (rounds >= MAX_TOOL_ROUNDS) {
-    onText('\n\n*Reached maximum tool call rounds. Stopping.*');
+    onText('\n\n*Reached maximum tool call rounds. Summarizing...*\n\n');
+    contextManager.addUserMessage('You have reached the maximum number of tool call rounds. Please summarize what you have accomplished so far and what remains to be done. Do not make any more tool calls.');
+    await contextManager.ensureWithinBudget([]);
+    const finalMessages = contextManager.getMessages();
+
+    for await (const chunk of provider.streamChat(finalMessages, [])) {
+      if (signal?.aborted) break;
+      if (chunk.type === 'text') {
+        onText(chunk.content);
+      }
+    }
   }
   onDone();
 }

@@ -84,7 +84,17 @@ async function runPlan(userMessage, contextManager, provider, { onText, onToolCa
   }
 
   if (rounds >= MAX_TOOL_ROUNDS) {
-    onText('\n\n*Reached maximum research rounds. Presenting plan with gathered information.*');
+    onText('\n\n*Reached maximum research rounds. Generating plan from gathered information...*\n\n');
+    contextManager.addUserMessage('You have reached the maximum number of research rounds. Based on everything you have gathered so far, please present your complete plan now. Do not make any more tool calls.');
+    await contextManager.ensureWithinBudget([]);
+    const finalMessages = contextManager.getMessages();
+
+    for await (const chunk of provider.streamChat(finalMessages, [])) {
+      if (signal?.aborted) break;
+      if (chunk.type === 'text') {
+        onText(chunk.content);
+      }
+    }
   }
   onDone();
 }

@@ -82,7 +82,17 @@ async function runAsk(userMessage, contextManager, provider, { onText, onToolCal
   }
 
   if (rounds >= MAX_TOOL_ROUNDS) {
-    onText('\n\n*Reached maximum research rounds.*');
+    onText('\n\n*Reached maximum research rounds. Generating answer...*\n\n');
+    contextManager.addUserMessage('You have reached the maximum number of research rounds. Based on everything you have gathered so far, please provide your complete answer now. Do not make any more tool calls.');
+    await contextManager.ensureWithinBudget([]);
+    const finalMessages = contextManager.getMessages();
+
+    for await (const chunk of provider.streamChat(finalMessages, [])) {
+      if (signal?.aborted) break;
+      if (chunk.type === 'text') {
+        onText(chunk.content);
+      }
+    }
   }
   onDone();
 }
