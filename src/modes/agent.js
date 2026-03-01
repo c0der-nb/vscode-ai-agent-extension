@@ -29,7 +29,7 @@ const MAX_TOOL_ROUNDS = 25;
  * @param {function} onDone - callback when agent finishes
  * @param {AbortSignal} signal
  */
-async function runAgent(userMessage, contextManager, provider, { onText, onToolCall, onDone, signal }) {
+async function runAgent(userMessage, contextManager, provider, { onText, onToolCall, onToolCallDone, onDone, signal }) {
   const tools = getToolsForMode('agent');
 
   const workspaceCtx = contextManager.getWorkspaceContext();
@@ -79,6 +79,7 @@ async function runAgent(userMessage, contextManager, provider, { onText, onToolC
 
       const result = await executeTool(tc.name, tc.arguments);
       contextManager.addToolResult(tc.id, result);
+      if (onToolCallDone) onToolCallDone(tc.name);
     }
   }
 

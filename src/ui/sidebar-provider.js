@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { getNonce } = require('../utils/helpers');
+const config = require('../utils/config');
 const logger = require('../utils/logger');
 
 class SidebarProvider {
@@ -56,6 +57,9 @@ class SidebarProvider {
     );
     const highlightUri = webview.asWebviewUri(hlStylePath);
 
+    const hljsBundlePath = path.join(this._context.extensionPath, 'webview', 'hljs-bundle.js');
+    const hljsScript = fs.readFileSync(hljsBundlePath, 'utf-8');
+
     const mainScriptPath = path.join(this._context.extensionPath, 'webview', 'main.js');
     const mainScript = fs.readFileSync(mainScriptPath, 'utf-8');
 
@@ -66,6 +70,7 @@ class SidebarProvider {
     html = html.replace(/\{\{cspSource\}\}/g, webview.cspSource);
     html = html.replace(/\{\{stylesUri\}\}/g, stylesUri.toString());
     html = html.replace(/\{\{highlightUri\}\}/g, highlightUri.toString());
+    html = html.replace(/\{\{hljsScript\}\}/g, hljsScript);
     html = html.replace(/\{\{mainScript\}\}/g, mainScript);
 
     return html;
@@ -83,6 +88,72 @@ class SidebarProvider {
         this._contextManager.clear();
         this._postMessage({ type: 'clearChat' });
         break;
+      case 'getSettings':
+        await this._sendCurrentSettings();
+        break;
+      case 'updateSettings':
+        await this._applySettings(msg.data);
+        break;
+    }
+  }
+
+  async _sendCurrentSettings() {
+    const azureCfg = config.getAzureConfig();
+    const foundryCfg = config.getAzureFoundryConfig();
+    const awsCfg = config.getAwsConfig();
+
+    this._postMessage({
+      type: 'settingsData',
+      data: {
+        provider: config.getProvider(),
+        model: config.getModel(),
+        azureEndpoint: azureCfg.endpoint,
+        azureDeploymentName: azureCfg.deploymentName,
+        azureApiVersion: azureCfg.apiVersion,
+        azureFoundryEndpoint: foundryCfg.endpoint,
+        azureFoundryModelName: foundryCfg.modelName,
+        awsRegion: awsCfg.region,
+        awsModelId: awsCfg.modelId,
+      },
+    });
+  }
+
+  async _applySettings(data) {
+    try {
+      const cfg = vscode.workspace.getConfiguration('aiAgent');
+
+      if (data.provider) await cfg.update('provider', data.provider, vscode.ConfigurationTarget.Global);
+      if (data.model) await cfg.update('model', data.model, vscode.ConfigurationTarget.Global);
+
+      if (data.azureEndpoint !== undefined) await cfg.update('azure.endpoint', data.azureEndpoint, vscode.ConfigurationTarget.Global);
+      if (data.azureDeploymentName !== undefined) await cfg.update('azure.deploymentName', data.azureDeploymentName, vscode.ConfigurationTarget.Global);
+      if (data.azureApiVersion) await cfg.update('azure.apiVersion', data.azureApiVersion, vscode.ConfigurationTarget.Global);
+
+      if (data.azureFoundryEndpoint !== undefined) await cfg.update('azureFoundry.endpoint', data.azureFoundryEndpoint, vscode.ConfigurationTarget.Global);
+      if (data.azureFoundryModelName !== undefined) await cfg.update('azureFoundry.modelName', data.azureFoundryModelName, vscode.ConfigurationTarget.Global);
+
+      if (data.awsRegion) await cfg.update('aws.region', data.awsRegion, vscode.ConfigurationTarget.Global);
+      if (data.awsModelId) await cfg.update('aws.modelId', data.awsModelId, vscode.ConfigurationTarget.Global);
+
+      if (data.apiKey) {
+        await config.setApiKey(data.provider, data.apiKey);
+      }
+
+      if (data.provider === 'bedrock') {
+        if (data.awsAccessKeyId) {
+          await config.setSecret('aiAgent.secrets.awsAccessKeyId', data.awsAccessKeyId);
+        }
+        if (data.awsSecretAccessKey) {
+          await config.setSecret('aiAgent.secrets.awsSecretAccessKey', data.awsSecretAccessKey);
+        }
+      }
+
+      this._postMessage({ type: 'settingsSaved' });
+      vscode.window.showInformationMessage('AI Agent: Settings saved.');
+      logger.info('Settings updated from panel');
+    } catch (err) {
+      logger.error('Failed to save settings', err);
+      this._postMessage({ type: 'error', text: 'Failed to save settings: ' + err.message });
     }
   }
 
@@ -106,6 +177,9 @@ class SidebarProvider {
       },
       onToolCall: (name, args) => {
         this._postMessage({ type: 'toolCall', name, args });
+      },
+      onToolCallDone: (name) => {
+        this._postMessage({ type: 'toolCallDone', name });
       },
       onDone: () => {
         this._postMessage({ type: 'endAssistant' });

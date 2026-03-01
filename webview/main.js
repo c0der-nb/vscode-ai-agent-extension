@@ -8,11 +8,14 @@
   const sendBtn = document.getElementById('sendBtn');
   const clearBtn = document.getElementById('clearBtn');
   const modeSelect = document.getElementById('modeSelect');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsPanel = document.getElementById('settingsPanel');
 
   let isStreaming = false;
   let currentAssistantEl = null;
   let currentContentEl = null;
   let streamBuffer = '';
+  let toolCallCounter = 0;
 
   function init() {
     sendBtn.addEventListener('click', sendMessage);
@@ -29,7 +32,102 @@
     });
 
     inputEl.addEventListener('input', autoResize);
+
+    if (settingsBtn) {
+      settingsBtn.addEventListener('click', toggleSettings);
+    }
+
+    const settingsSaveBtn = document.getElementById('settingsSaveBtn');
+    if (settingsSaveBtn) {
+      settingsSaveBtn.addEventListener('click', saveSettings);
+    }
+
+    const providerSelect = document.getElementById('settingsProvider');
+    if (providerSelect) {
+      providerSelect.addEventListener('change', updateSettingsVisibility);
+    }
   }
+
+  // --- Settings panel ---
+
+  function toggleSettings() {
+    if (!settingsPanel) return;
+    const visible = settingsPanel.style.display !== 'none';
+    if (visible) {
+      settingsPanel.style.display = 'none';
+    } else {
+      settingsPanel.style.display = 'block';
+      vscode.postMessage({ type: 'getSettings' });
+    }
+  }
+
+  function populateSettings(data) {
+    const providerEl = document.getElementById('settingsProvider');
+    const modelEl = document.getElementById('settingsModel');
+    const endpointEl = document.getElementById('settingsEndpoint');
+    const deploymentEl = document.getElementById('settingsDeployment');
+    const apiVersionEl = document.getElementById('settingsApiVersion');
+    const foundryEndpointEl = document.getElementById('settingsFoundryEndpoint');
+    const foundryModelEl = document.getElementById('settingsFoundryModel');
+    const awsRegionEl = document.getElementById('settingsAwsRegion');
+    const awsModelEl = document.getElementById('settingsAwsModel');
+
+    if (providerEl) providerEl.value = data.provider || 'openai';
+    if (modelEl) modelEl.value = data.model || '';
+    if (endpointEl) endpointEl.value = data.azureEndpoint || '';
+    if (deploymentEl) deploymentEl.value = data.azureDeploymentName || '';
+    if (apiVersionEl) apiVersionEl.value = data.azureApiVersion || '';
+    if (foundryEndpointEl) foundryEndpointEl.value = data.azureFoundryEndpoint || '';
+    if (foundryModelEl) foundryModelEl.value = data.azureFoundryModelName || '';
+    if (awsRegionEl) awsRegionEl.value = data.awsRegion || '';
+    if (awsModelEl) awsModelEl.value = data.awsModelId || '';
+
+    updateSettingsVisibility();
+  }
+
+  function updateSettingsVisibility() {
+    const providerEl = document.getElementById('settingsProvider');
+    if (!providerEl) return;
+    const provider = providerEl.value;
+
+    const azureGroup = document.getElementById('azureSettingsGroup');
+    const foundryGroup = document.getElementById('foundrySettingsGroup');
+    const awsGroup = document.getElementById('awsSettingsGroup');
+
+    if (azureGroup) azureGroup.style.display = provider === 'azure' ? 'block' : 'none';
+    if (foundryGroup) foundryGroup.style.display = provider === 'azureFoundry' ? 'block' : 'none';
+    if (awsGroup) awsGroup.style.display = provider === 'bedrock' ? 'block' : 'none';
+  }
+
+  function saveSettings() {
+    const data = {
+      provider: document.getElementById('settingsProvider')?.value,
+      model: document.getElementById('settingsModel')?.value,
+      apiKey: document.getElementById('settingsApiKey')?.value,
+      azureEndpoint: document.getElementById('settingsEndpoint')?.value,
+      azureDeploymentName: document.getElementById('settingsDeployment')?.value,
+      azureApiVersion: document.getElementById('settingsApiVersion')?.value,
+      azureFoundryEndpoint: document.getElementById('settingsFoundryEndpoint')?.value,
+      azureFoundryModelName: document.getElementById('settingsFoundryModel')?.value,
+      awsRegion: document.getElementById('settingsAwsRegion')?.value,
+      awsModelId: document.getElementById('settingsAwsModel')?.value,
+      awsAccessKeyId: document.getElementById('settingsAwsAccessKey')?.value,
+      awsSecretAccessKey: document.getElementById('settingsAwsSecretKey')?.value,
+    };
+
+    vscode.postMessage({ type: 'updateSettings', data });
+
+    const apiKeyEl = document.getElementById('settingsApiKey');
+    if (apiKeyEl) apiKeyEl.value = '';
+    const awsAkEl = document.getElementById('settingsAwsAccessKey');
+    if (awsAkEl) awsAkEl.value = '';
+    const awsSkEl = document.getElementById('settingsAwsSecretKey');
+    if (awsSkEl) awsSkEl.value = '';
+
+    settingsPanel.style.display = 'none';
+  }
+
+  // --- Chat ---
 
   function autoResize() {
     inputEl.style.height = 'auto';
@@ -49,10 +147,9 @@
     hideWelcome();
     const el = document.createElement('div');
     el.className = 'message';
-    el.innerHTML = `
-      <div class="message-role user">You</div>
-      <div class="message-content">${escapeHtml(text)}</div>
-    `;
+    el.innerHTML =
+      '<div class="message-role user">You</div>' +
+      '<div class="message-content">' + escapeHtml(text) + '</div>';
     messagesEl.appendChild(el);
     scrollToBottom();
   }
@@ -97,6 +194,14 @@
     if (currentAssistantEl) {
       const typing = currentAssistantEl.querySelector('#typingIndicator');
       if (typing) typing.remove();
+
+      // Mark all remaining in-progress tool calls as done
+      currentAssistantEl.querySelectorAll('.tool-call-inline.in-progress').forEach((el) => {
+        el.classList.remove('in-progress');
+        el.classList.add('completed');
+        const icon = el.querySelector('.tool-call-status');
+        if (icon) icon.innerHTML = '&#x2713;';
+      });
     }
     if (currentContentEl && streamBuffer) {
       currentContentEl.innerHTML = renderMarkdown(streamBuffer);
@@ -111,20 +216,73 @@
   }
 
   function addToolCall(name, args) {
-    hideWelcome();
-    const el = document.createElement('div');
-    el.className = 'tool-call';
+    toolCallCounter++;
+    const callId = 'tc-' + toolCallCounter;
 
     const argsPreview = typeof args === 'string' ? args : JSON.stringify(args);
-    const short = argsPreview.length > 80 ? argsPreview.slice(0, 80) + '...' : argsPreview;
+    const short = argsPreview.length > 60 ? argsPreview.slice(0, 60) + '...' : argsPreview;
 
-    el.innerHTML = `
-      <span class="tool-call-icon">&#x2699;</span>
-      <span class="tool-call-name">${escapeHtml(name)}</span>
-      <span>${escapeHtml(short)}</span>
-    `;
-    messagesEl.appendChild(el);
+    const el = document.createElement('div');
+    el.className = 'tool-call-inline in-progress';
+    el.id = callId;
+    el.setAttribute('data-tool-name', name);
+
+    const header = document.createElement('div');
+    header.className = 'tool-call-header';
+    header.innerHTML =
+      '<span class="tool-call-status"><span class="spinner"></span></span>' +
+      '<span class="tool-call-name">' + escapeHtml(name) + '</span>' +
+      '<span class="tool-call-summary">' + escapeHtml(short) + '</span>' +
+      '<span class="tool-call-chevron">&#x25B6;</span>';
+
+    header.addEventListener('click', () => {
+      const detail = el.querySelector('.tool-call-detail');
+      const chevron = el.querySelector('.tool-call-chevron');
+      if (detail.style.display === 'none') {
+        detail.style.display = 'block';
+        chevron.innerHTML = '&#x25BC;';
+      } else {
+        detail.style.display = 'none';
+        chevron.innerHTML = '&#x25B6;';
+      }
+    });
+
+    const detail = document.createElement('div');
+    detail.className = 'tool-call-detail';
+    detail.style.display = 'none';
+    detail.innerHTML = '<pre>' + escapeHtml(
+      typeof args === 'string' ? args : JSON.stringify(args, null, 2)
+    ) + '</pre>';
+
+    el.appendChild(header);
+    el.appendChild(detail);
+
+    // Insert inside the current assistant message, before the typing indicator
+    if (currentAssistantEl) {
+      const typing = currentAssistantEl.querySelector('#typingIndicator');
+      if (typing) {
+        currentAssistantEl.insertBefore(el, typing);
+      } else {
+        currentAssistantEl.appendChild(el);
+      }
+    } else {
+      messagesEl.appendChild(el);
+    }
+
     scrollToBottom();
+  }
+
+  function markToolCallDone(name) {
+    // Find the most recent in-progress tool call matching this name
+    const selector = '.tool-call-inline.in-progress[data-tool-name="' + name + '"]';
+    const candidates = document.querySelectorAll(selector);
+    const el = candidates.length > 0 ? candidates[candidates.length - 1] : null;
+    if (el) {
+      el.classList.remove('in-progress');
+      el.classList.add('completed');
+      const icon = el.querySelector('.tool-call-status');
+      if (icon) icon.innerHTML = '&#x2713;';
+    }
   }
 
   function clearMessages() {
@@ -135,6 +293,7 @@
     streamBuffer = '';
     isStreaming = false;
     sendBtn.disabled = false;
+    toolCallCounter = 0;
   }
 
   function hideWelcome() {
@@ -162,12 +321,11 @@
   }
 
   function renderMarkdown(text) {
-    // Minimal markdown renderer inlined to avoid CSP issues with external marked lib
     let html = text;
 
     // Code blocks
     html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
-      return `<pre><code class="language-${lang || 'plaintext'}">${escapeHtml(code.trim())}</code></pre>`;
+      return '<pre><code class="language-' + (lang || 'plaintext') + '">' + escapeHtml(code.trim()) + '</code></pre>';
     });
 
     // Inline code
@@ -197,7 +355,7 @@
     // Links
     html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
-    // Paragraphs — wrap remaining loose lines
+    // Paragraphs
     html = html.replace(/^(?!<[a-z])((?!<\/?(h[1-6]|ul|ol|li|pre|blockquote|div|table|tr|td|th)[ >]).+)$/gm, '<p>$1</p>');
 
     return html;
@@ -230,11 +388,19 @@
       case 'toolCall':
         addToolCall(msg.name, msg.args);
         break;
+      case 'toolCallDone':
+        markToolCallDone(msg.name);
+        break;
       case 'clearChat':
         clearMessages();
         break;
       case 'setMode':
         modeSelect.value = msg.mode;
+        break;
+      case 'settingsData':
+        populateSettings(msg.data);
+        break;
+      case 'settingsSaved':
         break;
       case 'error':
         endAssistantMessage();
@@ -246,10 +412,9 @@
   function addErrorMessage(text) {
     const el = document.createElement('div');
     el.className = 'message';
-    el.innerHTML = `
-      <div class="message-role" style="color: var(--vscode-errorForeground, #f44)">Error</div>
-      <div class="message-content">${escapeHtml(text)}</div>
-    `;
+    el.innerHTML =
+      '<div class="message-role" style="color: var(--vscode-errorForeground, #f44)">Error</div>' +
+      '<div class="message-content">' + escapeHtml(text) + '</div>';
     messagesEl.appendChild(el);
     scrollToBottom();
   }

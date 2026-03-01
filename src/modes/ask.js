@@ -17,7 +17,7 @@ RULES:
 
 const MAX_TOOL_ROUNDS = 10;
 
-async function runAsk(userMessage, contextManager, provider, { onText, onToolCall, onDone, signal }) {
+async function runAsk(userMessage, contextManager, provider, { onText, onToolCall, onToolCallDone, onDone, signal }) {
   const tools = getToolsForMode('ask');
 
   const workspaceCtx = contextManager.getWorkspaceContext();
@@ -66,6 +66,7 @@ async function runAsk(userMessage, contextManager, provider, { onText, onToolCal
       onToolCall(tc.name, tc.arguments);
       const result = await executeTool(tc.name, tc.arguments);
       contextManager.addToolResult(tc.id, result);
+      if (onToolCallDone) onToolCallDone(tc.name);
     }
   }
 

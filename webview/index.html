@@ -17,7 +17,85 @@
         <option value="plan">Plan</option>
         <option value="ask">Ask</option>
       </select>
+      <button id="settingsBtn" class="header-btn" title="Settings">&#x2699;</button>
       <button id="clearBtn" class="header-btn" title="New Chat">&#x2715;</button>
+    </div>
+
+    <div id="settingsPanel" class="settings-panel" style="display:none">
+      <h3>Settings</h3>
+
+      <div class="settings-group">
+        <label for="settingsProvider">Provider</label>
+        <select id="settingsProvider">
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic</option>
+          <option value="azure">Azure OpenAI</option>
+          <option value="azureFoundry">Azure AI Foundry</option>
+          <option value="bedrock">AWS Bedrock</option>
+        </select>
+      </div>
+
+      <div class="settings-group">
+        <label for="settingsModel">Model</label>
+        <input type="text" id="settingsModel" placeholder="e.g. gpt-4o, claude-sonnet-4-20250514" />
+      </div>
+
+      <div class="settings-group">
+        <label for="settingsApiKey">API Key</label>
+        <input type="password" id="settingsApiKey" placeholder="Paste key (stored securely)" />
+        <div class="settings-hint">Leave empty to keep existing key</div>
+      </div>
+
+      <div class="settings-divider"></div>
+
+      <div id="azureSettingsGroup" style="display:none">
+        <div class="settings-group">
+          <label for="settingsEndpoint">Azure Endpoint</label>
+          <input type="text" id="settingsEndpoint" placeholder="https://myresource.openai.azure.com" />
+        </div>
+        <div class="settings-group">
+          <label for="settingsDeployment">Deployment Name</label>
+          <input type="text" id="settingsDeployment" placeholder="my-gpt4-deployment" />
+        </div>
+        <div class="settings-group">
+          <label for="settingsApiVersion">API Version</label>
+          <input type="text" id="settingsApiVersion" placeholder="2024-10-21" />
+        </div>
+      </div>
+
+      <div id="foundrySettingsGroup" style="display:none">
+        <div class="settings-group">
+          <label for="settingsFoundryEndpoint">Foundry Server URL</label>
+          <input type="text" id="settingsFoundryEndpoint" placeholder="https://my-model.eastus.models.ai.azure.com" />
+        </div>
+        <div class="settings-group">
+          <label for="settingsFoundryModel">Model Name (optional)</label>
+          <input type="text" id="settingsFoundryModel" placeholder="Leave empty for default" />
+        </div>
+      </div>
+
+      <div id="awsSettingsGroup" style="display:none">
+        <div class="settings-group">
+          <label for="settingsAwsRegion">AWS Region</label>
+          <input type="text" id="settingsAwsRegion" placeholder="us-east-1" />
+        </div>
+        <div class="settings-group">
+          <label for="settingsAwsModel">Bedrock Model ID</label>
+          <input type="text" id="settingsAwsModel" placeholder="anthropic.claude-3-5-sonnet..." />
+        </div>
+        <div class="settings-group">
+          <label for="settingsAwsAccessKey">AWS Access Key ID</label>
+          <input type="password" id="settingsAwsAccessKey" placeholder="Paste key" />
+        </div>
+        <div class="settings-group">
+          <label for="settingsAwsSecretKey">AWS Secret Access Key</label>
+          <input type="password" id="settingsAwsSecretKey" placeholder="Paste key" />
+        </div>
+      </div>
+
+      <div class="settings-actions">
+        <button id="settingsSaveBtn">Save</button>
+      </div>
     </div>
 
     <div id="messages" class="messages">
@@ -41,6 +119,9 @@
     </div>
   </div>
 
+  <script nonce="{{nonce}}">
+    {{hljsScript}}
+  </script>
   <script nonce="{{nonce}}">
     {{mainScript}}
   </script>

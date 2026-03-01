@@ -19,7 +19,7 @@ RULES:
 
 const MAX_TOOL_ROUNDS = 15;
 
-async function runPlan(userMessage, contextManager, provider, { onText, onToolCall, onDone, signal }) {
+async function runPlan(userMessage, contextManager, provider, { onText, onToolCall, onToolCallDone, onDone, signal }) {
   const tools = getToolsForMode('plan');
 
   const workspaceCtx = contextManager.getWorkspaceContext();
@@ -67,6 +67,7 @@ async function runPlan(userMessage, contextManager, provider, { onText, onToolCa
       if (signal?.aborted) break;
       onToolCall(tc.name, tc.arguments);
       const result = await executeTool(tc.name, tc.arguments);
+      if (onToolCallDone) onToolCallDone(tc.name);
       contextManager.addToolResult(tc.id, result);
     }
   }
