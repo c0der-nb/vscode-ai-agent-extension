@@ -1,0 +1,184 @@
+{
+  "name": "ai-coding-agent",
+  "displayName": "AI Coding Agent",
+  "description": "Cursor-like AI coding assistant with Agent, Plan, and Ask modes — supports OpenAI, Anthropic, Azure OpenAI, Azure AI Foundry, and AWS Bedrock",
+  "version": "0.1.0",
+  "publisher": "ai-coding-agent",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Machine Learning",
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./src/extension.js",
+  "icon": "media/icon.png",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "aiAgent",
+          "title": "AI Agent",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "aiAgent": [
+        {
+          "type": "webview",
+          "id": "aiAgent.chatView",
+          "name": "Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "aiAgent.newChat",
+        "title": "AI Agent: New Chat"
+      },
+      {
+        "command": "aiAgent.setMode",
+        "title": "AI Agent: Switch Mode"
+      },
+      {
+        "command": "aiAgent.setApiKey",
+        "title": "AI Agent: Set API Key"
+      },
+      {
+        "command": "aiAgent.askAboutSelection",
+        "title": "AI Agent: Ask About Selection"
+      },
+      {
+        "command": "aiAgent.explainSelection",
+        "title": "AI Agent: Explain This Code"
+      },
+      {
+        "command": "aiAgent.refactorSelection",
+        "title": "AI Agent: Refactor Selection"
+      },
+      {
+        "command": "aiAgent.clearChat",
+        "title": "AI Agent: Clear Chat History"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "aiAgent.askAboutSelection",
+          "when": "editorHasSelection",
+          "group": "aiAgent@1"
+        },
+        {
+          "command": "aiAgent.explainSelection",
+          "when": "editorHasSelection",
+          "group": "aiAgent@2"
+        },
+        {
+          "command": "aiAgent.refactorSelection",
+          "when": "editorHasSelection",
+          "group": "aiAgent@3"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AI Coding Agent",
+      "properties": {
+        "aiAgent.provider": {
+          "type": "string",
+          "enum": [
+            "openai",
+            "anthropic",
+            "azure",
+            "azureFoundry",
+            "bedrock"
+          ],
+          "default": "openai",
+          "description": "LLM provider to use"
+        },
+        "aiAgent.model": {
+          "type": "string",
+          "default": "gpt-4o",
+          "description": "Model name (e.g., gpt-4o, claude-sonnet-4-20250514, etc.)"
+        },
+        "aiAgent.azure.endpoint": {
+          "type": "string",
+          "default": "",
+          "description": "Azure OpenAI endpoint URL (e.g., https://myresource.openai.azure.com)"
+        },
+        "aiAgent.azure.deploymentName": {
+          "type": "string",
+          "default": "",
+          "description": "Azure OpenAI deployment name"
+        },
+        "aiAgent.azure.apiVersion": {
+          "type": "string",
+          "default": "2024-10-21",
+          "description": "Azure OpenAI API version"
+        },
+        "aiAgent.azureFoundry.endpoint": {
+          "type": "string",
+          "default": "",
+          "description": "Azure AI Foundry server URL (e.g., https://my-model-xxx.eastus.models.ai.azure.com)"
+        },
+        "aiAgent.azureFoundry.modelName": {
+          "type": "string",
+          "default": "",
+          "description": "Optional model name override for the Foundry endpoint (leave empty to use default)"
+        },
+        "aiAgent.aws.region": {
+          "type": "string",
+          "default": "us-east-1",
+          "description": "AWS region for Bedrock"
+        },
+        "aiAgent.aws.modelId": {
+          "type": "string",
+          "default": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+          "description": "AWS Bedrock model ID"
+        },
+        "aiAgent.maxContextTokens": {
+          "type": "number",
+          "default": 128000,
+          "description": "Maximum context window size in tokens"
+        },
+        "aiAgent.compactionThreshold": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0.3,
+          "maximum": 0.95,
+          "description": "Fraction of context window usage that triggers compaction (0.3–0.95)"
+        },
+        "aiAgent.defaultMode": {
+          "type": "string",
+          "enum": [
+            "agent",
+            "plan",
+            "ask"
+          ],
+          "default": "agent",
+          "description": "Default interaction mode"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "lint": "eslint src/",
+    "package": "vsce package"
+  },
+  "dependencies": {
+    "openai": "^4.73.0",
+    "@anthropic-ai/sdk": "^0.32.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.700.0",
+    "js-tiktoken": "^1.0.15",
+    "marked": "^15.0.0",
+    "highlight.js": "^11.11.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "eslint": "^9.0.0"
+  }
+}
